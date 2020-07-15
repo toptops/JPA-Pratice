@@ -27,6 +27,12 @@ import java.util.stream.Collectors;
  * 2. 응답 객체 생성 방법.
  *  - 응답 객체를 생성하여 확장성 있고 유연하게 개발이 가능하다.
  *  - 응답 객체를 생성한다고 하더라도 지연로딩이 발생함. N + 1 문제 발생.
+ *
+ * 3. fetch join
+ *  - 페치조인의 특징은 원하는 엔티티에 대해서 Lazy 로딩 방식 아니고 조회할때 한번에 들고온다.(진짜 조회해서 들고옴)
+ *  - 기존 2번 방식에서는 조회되는 쿼리수가 많았지만 페치조인을 통해서 1번의 쿼리로 모든 정보들을 들고온다.
+ *  - 페치조인도 단점이 있는데 셀렉트로 엔티티를 전부 찍어서 조회하는(?)
+ *  - 페치조인은 실무에서 쓰려면 잘 알야한다 <- 별 5개짜리
  */
 @RestController
 @RequiredArgsConstructor
@@ -58,6 +64,16 @@ public class OrderSimpleApiController {
         return orders.stream()
                 .map(o -> new SimpleOrderDto(o))
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/api/v3/simple-orders")
+    public List<SimpleOrderDto> orderV3() {
+        List<Order> orders = orderRepository.findAllWithMemberDelivery();
+        List<SimpleOrderDto> result = orders.stream()
+                                        .map(o -> new SimpleOrderDto(o))
+                                        .collect(Collectors.toList());
+
+        return result;
     }
 
     @Data
