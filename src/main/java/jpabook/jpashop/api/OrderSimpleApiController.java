@@ -5,6 +5,8 @@ import jpabook.jpashop.domain.Order;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryDto;
+import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryRepository;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,12 +35,26 @@ import java.util.stream.Collectors;
  *  - 기존 2번 방식에서는 조회되는 쿼리수가 많았지만 페치조인을 통해서 1번의 쿼리로 모든 정보들을 들고온다.
  *  - 페치조인도 단점이 있는데 셀렉트로 엔티티를 전부 찍어서 조회하는(?)
  *  - 페치조인은 실무에서 쓰려면 잘 알야한다 <- 별 5개짜리
+ *
+ * 4. V4와 V3 차이
+ *  - 성능 차이는 별로 사실 없다..
+ *  - 실시간으로 자주 사용 한다면 (트래픽이 높게 되면) ->  V4 처럼 Dto를 받아서 최적화를 고려해야한다.
+ *  - Dto 자체를 받아옴으로, 다른 곳에서 재사용이 힘들다.(api spec 자체를 받아옴으로..)
+ *  - v3에서는 엔티티 자체를 받아옴으로 다른곳에서도 재사용이 가능함..
+ *  - 기본 Repository에서는 Entity 위주로 뽑아내고 복잡한 쿼리같은 경우는 따로 Repository를 분리해서 만든다.(권장)
+ *
+ *  쿼리 방식 선택 권장 순서
+ *  1. 우선 엔티티를 DTO로 변환하는 방법을 선택
+ *  2. 필요하면 Fetch조인으로 성능을 최적화 -> 대부분이 해결된다.
+ *  3. 그래도 안되면 DTO로 직접 조회하는 방법을 사용
+ *  4. 최후의 방법은 JPA가 제공하는 네이티브 SQL이나 스프링 JDBC Template를 사용해서 SQL을 사용.
  */
 @RestController
 @RequiredArgsConstructor
 public class OrderSimpleApiController {
 
     private final OrderRepository orderRepository;
+    private final OrderSimpleQueryRepository orderSimpleQueryRepository;
 
     @GetMapping("/api/v1/simple-orders")
     public List<Order> ordersV1() {
@@ -75,6 +91,12 @@ public class OrderSimpleApiController {
 
         return result;
     }
+
+    @GetMapping("/api/v4/simple-orders")
+    public List<OrderSimpleQueryDto> orderV4() {
+       return orderSimpleQueryRepository.findOrderDtos();
+    }
+
 
     @Data
     static class SimpleOrderDto {

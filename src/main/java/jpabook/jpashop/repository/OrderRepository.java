@@ -2,6 +2,7 @@ package jpabook.jpashop.repository;
 
 import jpabook.jpashop.domain.Member;
 import jpabook.jpashop.domain.Order;
+import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -109,10 +110,16 @@ public class OrderRepository {
         return query.getResultList();
     }
 
+    /*
+     * Order 전체를 들고온다. 재사용 가능성이 높음.
+     * 단점으로는 셀렉 쿼리 날릴때 전부 가져오게 됨.
+     */
     public List<Order> findAllWithMemberDelivery() {
         return em.createQuery("select o from Order o" +
                 " join fetch o.member m" +
                 " join fetch o.delivery d", Order.class
         ).getResultList();
     }
+
+
 }
