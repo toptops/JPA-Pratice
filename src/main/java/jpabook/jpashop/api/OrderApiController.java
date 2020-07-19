@@ -29,6 +29,15 @@ import java.util.stream.Collectors;
  *  - DTO로 감싼다고 해서 엔티티를 노출해서는 안된다. (OrderItems 조차도 Dto로 전부 바꿔야한다.)
  *  - 역시나.. 조회 쿼리가 각각 나가서 쿼리수가 많아진다... (Lazy loading)
  *
+ * 3. Fetch 조인
+ *  - 실제 페치조인을 통해서 요청하는 값과 나오는 쿼리 값이 다르다..?
+ *  - 페치조인을 이용하면 최적의 결과 값을 가져온다.
+ *  - distinct 이용.. 1대다 조인이 있을시 row가 증가하는데 같은 엔티티도 증가하게 되는데, JPA distinct는 SQL에서
+ *  distinct를 추가하여 쿼리를 실행해서 가져오는데, 여기에 더해서 한번더 중복을 걸러준다.
+ *  - 페이징 쿼리는 되지 않는다.(메모리에서 처리해버려서 큰일난다)
+ *  - 페치 조인시 실제 쿼리는 n * m 상황임으로 데이터가 늘어나게 되는데 여기서 페이징 처리하게되면 데이터를 이상하게 가져오게 되서 메모리에서 처리한다.
+ *  (Order 기준으로 페이징이 되야하는데 OrderItem기준으로 들고오게됨)
+ *  - 컬렉션 페치 조인을 2개이상 걸게 되면 1 * N * M이 되고 어떤 기준으로 가져오는지 정합성이 안맞게 된다.
  */
 @RestController
 @RequiredArgsConstructor
@@ -57,6 +66,15 @@ public class OrderApiController {
                 .map(o -> new OrderDto(o))
                 .collect(Collectors.toList());
         return collect;
+    }
+
+    @GetMapping("/api/v3/orders")
+    public List<OrderDto> ordersV3() {
+        List<Order> orders = orderRepository.findAllWithItem();
+        List<OrderDto> result = orders.stream()
+                .map(o -> new OrderDto(o))
+                .collect(Collectors.toList());
+        return result;
     }
 
     @Data
