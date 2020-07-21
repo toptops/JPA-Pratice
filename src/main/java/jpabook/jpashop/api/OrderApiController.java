@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
@@ -38,6 +39,18 @@ import java.util.stream.Collectors;
  *  - 페치 조인시 실제 쿼리는 n * m 상황임으로 데이터가 늘어나게 되는데 여기서 페이징 처리하게되면 데이터를 이상하게 가져오게 되서 메모리에서 처리한다.
  *  (Order 기준으로 페이징이 되야하는데 OrderItem기준으로 들고오게됨)
  *  - 컬렉션 페치 조인을 2개이상 걸게 되면 1 * N * M이 되고 어떤 기준으로 가져오는지 정합성이 안맞게 된다.
+ *
+ *  4. 페이징과 한계 돌파(최적화) : 페이징 + 컬렉션 엔티티 조회 방법 설명(참조)
+ *  - toOne 관계는 fetch조인을 사용한다. (하나의 데이터 단위만 조회함으로 toOne은 row수를 증가시키지 않기 때문.)
+ *  - 컬렉션은 지연로딩으로 조회한다.
+ *  - 지연 로딩 최적화를 위해 'hibernate.default_batch_fetch_size' 옵션 사용 : 미리 지정해 놓은 사이즈 만큼 데이터를 가져온다.
+ *      - 쿼리 호출수가 줄어든다.
+ *      - 패치 조인보다 데이터DB 전송량이 최적화 된다.
+ *      - 데이터 양이 많다면 이 부분이 더 좋을 수 있다.(양이 적으면 fetch 나쁘지 않다)
+ *      - 컬렉션 페치 조인은 페이징이 불가능하지만 이방법은 페이징이 가능
+ *      - SQL IN절을 사용하기 때문에 100~1000 사이로 측정한다.
+ *      - 메모리는.. 백만건 이상이면 쓰레드를 이용해서 데이터를 받는 즉시 처리도록 만들어야한다..
+ *      (객체 천만개 생성해봤는데 cpu 점유율이 백프로를 찍었다.. 메모리는 무려 2G를 차지)
  */
 @RestController
 @RequiredArgsConstructor
@@ -74,6 +87,20 @@ public class OrderApiController {
         List<OrderDto> result = orders.stream()
                 .map(o -> new OrderDto(o))
                 .collect(Collectors.toList());
+        return result;
+    }
+
+    @GetMapping("/api/v3.1/orders")
+    public List<OrderDto> ordersV3_page(
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "100") int limit) {
+
+        List<Order> orders = orderRepository.findAllWithMemberDelivery(offset, limit);
+
+        List<OrderDto> result = orders.stream()
+                .map(o -> new OrderDto(o))
+                .collect(Collectors.toList());
+
         return result;
     }
 
