@@ -6,6 +6,8 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderQueryDto;
+import jpabook.jpashop.repository.order.query.OrderQueryRepository;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -51,12 +53,18 @@ import java.util.stream.Collectors;
  *      - SQL IN절을 사용하기 때문에 100~1000 사이로 측정한다.
  *      - 메모리는.. 백만건 이상이면 쓰레드를 이용해서 데이터를 받는 즉시 처리도록 만들어야한다..
  *      (객체 천만개 생성해봤는데 cpu 점유율이 백프로를 찍었다.. 메모리는 무려 2G를 차지)
+ *
+ *  5. JPA에서 DTO 직접 조회
+ *   - toOne 관계의 데이터를 가져온 이후 처리 방식
+ *   - toOne 이후 toMany 값들을 따로 조회해서 가져온다
+ *   - N + 1 문제 발생함(함수 확인)
  */
 @RestController
 @RequiredArgsConstructor
 public class OrderApiController {
 
     private final OrderRepository orderRepository;
+    private final OrderQueryRepository orderQueryRepository;
 
     @GetMapping("/api/v1/orders")
     public List<Order> ordersV1() {
@@ -103,6 +111,12 @@ public class OrderApiController {
 
         return result;
     }
+
+    @GetMapping("/api/v4/orders")
+    public List<OrderQueryDto> ordersV4() {
+        return orderQueryRepository.findOrderQueryDtos();
+    }
+
 
     @Data
     static class OrderDto {
