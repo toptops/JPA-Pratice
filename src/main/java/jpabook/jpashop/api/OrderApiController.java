@@ -58,6 +58,10 @@ import java.util.stream.Collectors;
  *   - toOne 관계의 데이터를 가져온 이후 처리 방식
  *   - toOne 이후 toMany 값들을 따로 조회해서 가져온다
  *   - N + 1 문제 발생함(함수 확인)
+ *  6. 5번 최적화
+ *   - orderId로 ToMany 관계인 OrderItem을 한번에 조회(for문 한번 돌아야함..)
+ *   - Map()을 사용하여 매칭 성능 높임
+ *
  */
 @RestController
 @RequiredArgsConstructor
@@ -117,6 +121,10 @@ public class OrderApiController {
         return orderQueryRepository.findOrderQueryDtos();
     }
 
+    @GetMapping("/api/v5/orders")
+    public List<OrderQueryDto> ordersV5() {
+        return orderQueryRepository.findAllByDto_optimization();
+    }
 
     @Data
     static class OrderDto {
