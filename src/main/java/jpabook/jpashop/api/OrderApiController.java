@@ -6,6 +6,8 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderFlatDto;
+import jpabook.jpashop.repository.order.query.OrderItemQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryRepository;
 import lombok.Data;
@@ -18,7 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.*;
+
 
 /**
  * 컬렉션 조회..
@@ -61,7 +65,10 @@ import java.util.stream.Collectors;
  *  6. 5번 최적화
  *   - orderId로 ToMany 관계인 OrderItem을 한번에 조회(for문 한번 돌아야함..)
  *   - Map()을 사용하여 매칭 성능 높임
- *
+ *  7. 쿼리 1번으로 전부 가져오기
+ *   - 쿼리는 한번이지만 조인으로 인해 데이터 중복이 추가되는 상황이 발생하여 v5보다 느릴수 있다.
+ *   - 추가 데이터 중복을 걸러내는 작업과 변환작업이 생각보다 크다.(데이터 많으면 느리다)
+ *   - 페이징이 불가능하다.
  */
 @RestController
 @RequiredArgsConstructor
@@ -89,7 +96,7 @@ public class OrderApiController {
         List<Order> orders = orderRepository.findAllByString(new OrderSearch());
         List<OrderDto> collect = orders.stream()
                 .map(o -> new OrderDto(o))
-                .collect(Collectors.toList());
+                .collect(toList());
         return collect;
     }
 
@@ -98,7 +105,7 @@ public class OrderApiController {
         List<Order> orders = orderRepository.findAllWithItem();
         List<OrderDto> result = orders.stream()
                 .map(o -> new OrderDto(o))
-                .collect(Collectors.toList());
+                .collect(toList());
         return result;
     }
 
@@ -111,7 +118,7 @@ public class OrderApiController {
 
         List<OrderDto> result = orders.stream()
                 .map(o -> new OrderDto(o))
-                .collect(Collectors.toList());
+                .collect(toList());
 
         return result;
     }
@@ -124,6 +131,21 @@ public class OrderApiController {
     @GetMapping("/api/v5/orders")
     public List<OrderQueryDto> ordersV5() {
         return orderQueryRepository.findAllByDto_optimization();
+    }
+
+    @GetMapping("/api/v6/orders")
+    public List<OrderQueryDto> ordersV6() {
+        List<OrderFlatDto> flats =  orderQueryRepository.findAllByDto_flat();
+
+        return flats.stream().collect(groupingBy(o -> new OrderQueryDto(o.getOrderId(),
+                        o.getName(), o.getOrderDate(), o.getOrderStatus(), o.getAddress()),
+                mapping(o -> new OrderItemQueryDto(o.getOrderId(),
+                        o.getItemName(), o.getOrderPrice(), o.getCount()), toList())
+        )).entrySet().stream()
+                .map(e -> new OrderQueryDto(e.getKey().getOrderId(),
+                        e.getKey().getName(), e.getKey().getOrderDate(), e.getKey().getOrderStatus(),
+                        e.getKey().getAddress()))
+                .collect(toList());
     }
 
     @Data
@@ -144,7 +166,7 @@ public class OrderApiController {
             address = order.getDelivery().getAddress();
             orderItems = order.getOrderItems().stream()
                     .map( orderItem -> new OrderItemDto(orderItem))
-                    .collect(Collectors.toList());
+                    .collect(toList());
         }
 
     }
