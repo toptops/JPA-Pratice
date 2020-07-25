@@ -62,13 +62,25 @@ import static java.util.stream.Collectors.*;
  *   - toOne 관계의 데이터를 가져온 이후 처리 방식
  *   - toOne 이후 toMany 값들을 따로 조회해서 가져온다
  *   - N + 1 문제 발생함(함수 확인)
+ *
  *  6. 5번 최적화
  *   - orderId로 ToMany 관계인 OrderItem을 한번에 조회(for문 한번 돌아야함..)
  *   - Map()을 사용하여 매칭 성능 높임
+ *
  *  7. 쿼리 1번으로 전부 가져오기
  *   - 쿼리는 한번이지만 조인으로 인해 데이터 중복이 추가되는 상황이 발생하여 v5보다 느릴수 있다.
  *   - 추가 데이터 중복을 걸러내는 작업과 변환작업이 생각보다 크다.(데이터 많으면 느리다)
  *   - 페이징이 불가능하다.
+ *
+ *  8. 정리
+ *  1. 엔티티 조회 방식으로 우선 접근ㄴ
+ *      - 페치조인으로 쿼리수를 최적화
+ *      - 페치조인이지만 페이징이 필요하면 'hibernate.default_batch_fetch_size', @BatchSize로 최적화
+ *      - 페이징이 필요 없으면 -> 폐치 조인 사용
+ *  2. 엔티티 조회 방식으로 해결이 안되면 DTO조회 방식 사용
+ *  3. DTO조회 방식으로 해결이 안되면 NativeSQL or JdbcTemplate 사용
+ *  - 'hibernate.default_batch_fetch_size', @BatchSize
+ *      - 설명 :
  */
 @RestController
 @RequiredArgsConstructor
